@@ -7,7 +7,8 @@ import com.contextkey.ai.keyboard.model.KeyboardMode
 import com.contextkey.ai.keyboard.model.ShiftState
 
 /**
- * Manages keyboard modes, shift state transitions, and dispatches actions to [InputController].
+ * Manages keyboard modes, double-tap shift transitions (Caps Lock),
+ * and dispatches actions to [InputController].
  */
 class KeyboardController(
     private val inputController: InputController,
@@ -21,9 +22,17 @@ class KeyboardController(
     var shiftState: ShiftState = ShiftState.OFF
         private set
 
+    private var lastShiftTapTime: Long = 0L
+
     fun resetState() {
         keyboardMode = KeyboardMode.QWERTY
         shiftState = ShiftState.OFF
+        lastShiftTapTime = 0L
+        onStateChanged()
+    }
+
+    fun setInitialShiftState(initialState: ShiftState) {
+        this.shiftState = initialState
         onStateChanged()
     }
 
@@ -41,7 +50,16 @@ class KeyboardController(
             }
 
             is KeyAction.Shift -> {
-                shiftState = shiftState.nextOnTap()
+                val currentTime = System.currentTimeMillis()
+                val isDoubleTap = (currentTime - lastShiftTapTime) < DOUBLE_TAP_TIMEOUT_MS
+
+                shiftState = when {
+                    shiftState == ShiftState.CAPS_LOCKED -> ShiftState.OFF
+                    isDoubleTap && shiftState == ShiftState.SHIFTED -> ShiftState.CAPS_LOCKED
+                    shiftState == ShiftState.SHIFTED -> ShiftState.OFF
+                    else -> ShiftState.SHIFTED
+                }
+                lastShiftTapTime = currentTime
                 onStateChanged()
             }
 
@@ -70,5 +88,15 @@ class KeyboardController(
                 // Phase 1 placeholder: no action performed
             }
         }
+    }
+
+    fun handleKeyLongClick(keyItem: KeyItem) {
+        val charAction = keyItem.action as? KeyAction.Character
+        val longPressChar = charAction?.longPressText ?: return
+        inputController.commitText(longPressChar)
+    }
+
+    companion object {
+        private const val DOUBLE_TAP_TIMEOUT_MS = 400L
     }
 }

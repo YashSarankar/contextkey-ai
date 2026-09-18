@@ -1,9 +1,10 @@
 package com.contextkey.ai.keyboard.ui
 
 import android.content.Context
+import android.content.res.Configuration
 import android.util.AttributeSet
 import android.view.Gravity
-import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import com.contextkey.ai.keyboard.R
@@ -12,7 +13,8 @@ import com.contextkey.ai.keyboard.model.KeyboardMode
 
 /**
  * Root input view for the ContextKey keyboard.
- * Renders the header and dynamic key rows according to the active mode and shift state.
+ * Renders the header and dynamic key rows according to the active mode, shift state,
+ * and current EditorInfo.
  */
 class KeyboardView @JvmOverloads constructor(
     context: Context,
@@ -24,6 +26,7 @@ class KeyboardView @JvmOverloads constructor(
     private val rowsContainer: LinearLayout = LinearLayout(context)
 
     private var controller: KeyboardController? = null
+    private var currentEditorInfo: EditorInfo? = null
 
     init {
         orientation = VERTICAL
@@ -35,7 +38,7 @@ class KeyboardView @JvmOverloads constructor(
 
         // Rows container
         rowsContainer.orientation = VERTICAL
-        rowsContainer.setPadding(dpToPx(4), dpToPx(4), dpToPx(4), dpToPx(6))
+        rowsContainer.setPadding(dpToPx(4), dpToPx(3), dpToPx(4), dpToPx(6))
         val containerParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         addView(rowsContainer, containerParams)
     }
@@ -45,19 +48,25 @@ class KeyboardView @JvmOverloads constructor(
         render()
     }
 
+    fun setEditorInfo(editorInfo: EditorInfo?) {
+        this.currentEditorInfo = editorInfo
+        render()
+    }
+
     fun render() {
         val ctrl = controller ?: return
         rowsContainer.removeAllViews()
 
-        val rows = when (ctrl.keyboardMode) {
-            KeyboardMode.QWERTY -> KeyboardLayoutProvider.getQwertyRows()
-            KeyboardMode.NUMERIC_SYMBOLS -> KeyboardLayoutProvider.getNumericSymbolsRows()
-            KeyboardMode.MORE_SYMBOLS -> KeyboardLayoutProvider.getMoreSymbolsRows()
-        }
-
-        val rowHeight = dpToPx(48)
+        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val rowHeight = if (isLandscape) dpToPx(38) else dpToPx(50)
         val keyMarginHorizontal = dpToPx(3)
-        val keyMarginVertical = dpToPx(4)
+        val keyMarginVertical = dpToPx(3)
+
+        val rows = when (ctrl.keyboardMode) {
+            KeyboardMode.QWERTY -> KeyboardLayoutProvider.getQwertyRows(currentEditorInfo)
+            KeyboardMode.NUMERIC_SYMBOLS -> KeyboardLayoutProvider.getNumericSymbolsRows(currentEditorInfo)
+            KeyboardMode.MORE_SYMBOLS -> KeyboardLayoutProvider.getMoreSymbolsRows(currentEditorInfo)
+        }
 
         for (rowItems in rows) {
             val rowLayout = LinearLayout(context).apply {
@@ -74,9 +83,12 @@ class KeyboardView @JvmOverloads constructor(
                         setMargins(keyMarginHorizontal, 0, keyMarginHorizontal, 0)
                     }
                 }
-                keyView.bind(keyItem, ctrl.shiftState) { item ->
-                    ctrl.handleKeyClick(item)
-                }
+                keyView.bind(
+                    item = keyItem,
+                    shiftState = ctrl.shiftState,
+                    clickListener = { item -> ctrl.handleKeyClick(item) },
+                    longClickListener = { item -> ctrl.handleKeyLongClick(item) }
+                )
                 rowLayout.addView(keyView)
             }
 

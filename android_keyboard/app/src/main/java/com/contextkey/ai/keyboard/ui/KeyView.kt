@@ -1,8 +1,9 @@
 package com.contextkey.ai.keyboard.ui
 
 import android.content.Context
-import android.graphics.Color
-import android.graphics.drawable.Drawable
+import android.graphics.Typeface
+import android.os.Handler
+import android.os.Looper
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
@@ -18,7 +19,8 @@ import com.contextkey.ai.keyboard.model.KeyItem
 import com.contextkey.ai.keyboard.model.ShiftState
 
 /**
- * Visual key widget rendering text label or icon with touch states and haptics.
+ * Visual key widget rendering primary label, secondary hints, or icons,
+ * with tactile elevation, haptics, and auto-repeat on backspace.
  */
 class KeyView @JvmOverloads constructor(
     context: Context,
@@ -27,25 +29,65 @@ class KeyView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     private val textView: TextView = TextView(context)
+    private val secondaryTextView: TextView = TextView(context)
     private val imageView: ImageView = ImageView(context)
 
     var keyItem: KeyItem? = null
         private set
 
     private var onKeyClickListener: ((KeyItem) -> Unit)? = null
+    private var onKeyLongPressListener: ((KeyItem) -> Unit)? = null
+
+    private val repeatHandler = Handler(Looper.getMainLooper())
+    private var isRepeating = false
+    private var longPressTriggered = false
+
+    private val repeatRunnable = object : Runnable {
+        override fun run() {
+            if (isPressed) {
+                isRepeating = true
+                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                keyItem?.let { onKeyClickListener?.invoke(it) }
+                repeatHandler.postDelayed(this, REPEAT_INTERVAL_MS)
+            }
+        }
+    }
+
+    private val longPressRunnable = Runnable {
+        if (isPressed && !isRepeating) {
+            val item = keyItem ?: return@Runnable
+            val charAction = item.action as? KeyAction.Character
+            if (charAction?.longPressText != null) {
+                longPressTriggered = true
+                performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                onKeyLongPressListener?.invoke(item)
+            }
+        }
+    }
 
     init {
         isClickable = true
         isFocusable = false
 
-        // Configure text view
+        // Configure main label
         textView.gravity = Gravity.CENTER
+        textView.typeface = Typeface.create("sans-serif", Typeface.NORMAL)
         textView.setTextColor(ContextCompat.getColor(context, R.color.kb_text_primary))
-        textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19f)
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
         val textParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         addView(textView, textParams)
 
-        // Configure image view
+        // Configure secondary hint label (top-right corner)
+        secondaryTextView.gravity = Gravity.TOP or Gravity.END
+        secondaryTextView.setTextColor(ContextCompat.getColor(context, R.color.kb_text_secondary))
+        secondaryTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
+        val secondaryParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+            gravity = Gravity.TOP or Gravity.END
+            setMargins(0, dpToPx(3), dpToPx(5), 0)
+        }
+        addView(secondaryTextView, secondaryParams)
+
+        // Configure icon image view
         imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
         imageView.setColorFilter(ContextCompat.getColor(context, R.color.kb_icon_tint))
         val imageParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
@@ -55,12 +97,14 @@ class KeyView @JvmOverloads constructor(
     fun bind(
         item: KeyItem,
         shiftState: ShiftState,
-        listener: (KeyItem) -> Unit
+        clickListener: (KeyItem) -> Unit,
+        longClickListener: ((KeyItem) -> Unit)? = null
     ) {
         this.keyItem = item
-        this.onKeyClickListener = listener
+        this.onKeyClickListener = clickListener
+        this.onKeyLongPressListener = longClickListener
 
-        // Set background styling based on key type
+        // Background styling
         val bgRes = when {
             item.isAction -> R.drawable.bg_key_action
             item.isSpecial -> R.drawable.bg_key_special
@@ -68,10 +112,12 @@ class KeyView @JvmOverloads constructor(
         }
         background = ContextCompat.getDrawable(context, bgRes)
 
-        // Render Icon or Text
+        // Render Icons or Labels
         if (item.action is KeyAction.Shift) {
             textView.visibility = GONE
+            secondaryTextView.visibility = GONE
             imageView.visibility = VISIBLE
+
             val shiftIcon = when (shiftState) {
                 ShiftState.OFF -> R.drawable.ic_shift
                 ShiftState.SHIFTED -> R.drawable.ic_shift_active
@@ -85,6 +131,7 @@ class KeyView @JvmOverloads constructor(
             }
         } else if (item.iconResId != null) {
             textView.visibility = GONE
+            secondaryTextView.visibility = GONE
             imageView.visibility = VISIBLE
             imageView.setImageResource(item.iconResId)
             imageView.setColorFilter(ContextCompat.getColor(context, R.color.kb_icon_tint))
@@ -100,6 +147,7 @@ class KeyView @JvmOverloads constructor(
             }
 
             textView.text = label
+
             if (item.action is KeyAction.Space) {
                 textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
                 textView.setTextColor(ContextCompat.getColor(context, R.color.kb_text_secondary))
@@ -107,8 +155,16 @@ class KeyView @JvmOverloads constructor(
                 textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
                 textView.setTextColor(ContextCompat.getColor(context, R.color.kb_text_primary))
             } else {
-                textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19f)
+                textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
                 textView.setTextColor(ContextCompat.getColor(context, R.color.kb_text_primary))
+            }
+
+            // Secondary label
+            if (!item.secondaryLabel.isNullOrEmpty() && shiftState == ShiftState.OFF) {
+                secondaryTextView.visibility = VISIBLE
+                secondaryTextView.text = item.secondaryLabel
+            } else {
+                secondaryTextView.visibility = GONE
             }
         }
     }
@@ -117,21 +173,49 @@ class KeyView @JvmOverloads constructor(
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 isPressed = true
+                longPressTriggered = false
+                isRepeating = false
                 performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                return true
-            }
-            MotionEvent.ACTION_UP -> {
-                if (isPressed) {
-                    isPressed = false
-                    keyItem?.let { onKeyClickListener?.invoke(it) }
+
+                if (keyItem?.action is KeyAction.Backspace) {
+                    repeatHandler.postDelayed(repeatRunnable, REPEAT_INITIAL_DELAY_MS)
+                } else if ((keyItem?.action as? KeyAction.Character)?.longPressText != null) {
+                    repeatHandler.postDelayed(longPressRunnable, LONG_PRESS_DELAY_MS)
                 }
                 return true
             }
+
+            MotionEvent.ACTION_UP -> {
+                repeatHandler.removeCallbacks(repeatRunnable)
+                repeatHandler.removeCallbacks(longPressRunnable)
+                if (isPressed) {
+                    isPressed = false
+                    if (!isRepeating && !longPressTriggered) {
+                        keyItem?.let { onKeyClickListener?.invoke(it) }
+                    }
+                }
+                return true
+            }
+
             MotionEvent.ACTION_CANCEL -> {
+                repeatHandler.removeCallbacks(repeatRunnable)
+                repeatHandler.removeCallbacks(longPressRunnable)
                 isPressed = false
+                isRepeating = false
+                longPressTriggered = false
                 return true
             }
         }
         return super.onTouchEvent(event)
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * context.resources.displayMetrics.density).toInt()
+    }
+
+    companion object {
+        private const val REPEAT_INITIAL_DELAY_MS = 380L
+        private const val REPEAT_INTERVAL_MS = 50L
+        private const val LONG_PRESS_DELAY_MS = 400L
     }
 }

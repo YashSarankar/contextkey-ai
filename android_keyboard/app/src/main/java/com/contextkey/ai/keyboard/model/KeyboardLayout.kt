@@ -1,5 +1,7 @@
 package com.contextkey.ai.keyboard.model
 
+import android.text.InputType
+import android.view.inputmethod.EditorInfo
 import com.contextkey.ai.keyboard.R
 
 /**
@@ -20,19 +22,18 @@ enum class ShiftState {
     CAPS_LOCKED;
 
     fun isShiftedOrCaps(): Boolean = this == SHIFTED || this == CAPS_LOCKED
-
-    fun nextOnTap(): ShiftState = when (this) {
-        OFF -> SHIFTED
-        SHIFTED -> CAPS_LOCKED
-        CAPS_LOCKED -> OFF
-    }
 }
 
 /**
  * Types of actions keys can perform.
  */
 sealed class KeyAction {
-    data class Character(val normal: String, val shifted: String = normal.uppercase()) : KeyAction()
+    data class Character(
+        val normal: String,
+        val shifted: String = normal.uppercase(),
+        val longPressText: String? = null
+    ) : KeyAction()
+
     object Shift : KeyAction()
     object Backspace : KeyAction()
     object Space : KeyAction()
@@ -55,19 +56,21 @@ data class KeyItem(
     val isAction: Boolean = false
 ) {
     companion object {
-        fun charKey(char: Char, weight: Float = 1.0f): KeyItem {
+        fun charKey(char: Char, secondaryHint: String? = null, weight: Float = 1.0f): KeyItem {
             val normal = char.toString()
             return KeyItem(
-                action = KeyAction.Character(normal),
+                action = KeyAction.Character(normal, normal.uppercase(), secondaryHint),
                 primaryLabel = normal,
+                secondaryLabel = secondaryHint,
                 widthWeight = weight
             )
         }
 
-        fun symbolKey(symbol: String, weight: Float = 1.0f): KeyItem {
+        fun symbolKey(symbol: String, longPressHint: String? = null, weight: Float = 1.0f): KeyItem {
             return KeyItem(
-                action = KeyAction.Character(symbol, symbol),
+                action = KeyAction.Character(symbol, symbol, longPressHint),
                 primaryLabel = symbol,
+                secondaryLabel = longPressHint,
                 widthWeight = weight
             )
         }
@@ -79,8 +82,31 @@ data class KeyItem(
  */
 object KeyboardLayoutProvider {
 
-    fun getQwertyRows(): List<List<KeyItem>> {
-        val row1 = listOf('q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p').map { KeyItem.charKey(it) }
+    fun getEnterKeyIcon(editorInfo: EditorInfo?): Int {
+        if (editorInfo == null) return R.drawable.ic_enter
+
+        val isMultiLine = (editorInfo.inputType and InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0
+        if (isMultiLine) return R.drawable.ic_enter
+
+        val action = editorInfo.imeOptions and (EditorInfo.IME_MASK_ACTION or EditorInfo.IME_FLAG_NO_ENTER_ACTION)
+        val noEnter = (editorInfo.imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
+
+        if (noEnter) return R.drawable.ic_enter
+
+        return when (action and EditorInfo.IME_MASK_ACTION) {
+            EditorInfo.IME_ACTION_SEARCH -> R.drawable.ic_action_search
+            EditorInfo.IME_ACTION_SEND -> R.drawable.ic_action_send
+            EditorInfo.IME_ACTION_GO -> R.drawable.ic_action_go
+            EditorInfo.IME_ACTION_DONE -> R.drawable.ic_action_done
+            EditorInfo.IME_ACTION_NEXT -> R.drawable.ic_action_next
+            else -> R.drawable.ic_enter
+        }
+    }
+
+    fun getQwertyRows(editorInfo: EditorInfo? = null): List<List<KeyItem>> {
+        val topRowChars = listOf('q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p')
+        val topRowDigits = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+        val row1 = topRowChars.zip(topRowDigits) { c, d -> KeyItem.charKey(c, d) }
 
         val row2 = listOf('a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l').map { KeyItem.charKey(it) }
 
@@ -104,6 +130,8 @@ object KeyboardLayoutProvider {
             )
         }
 
+        val enterIcon = getEnterKeyIcon(editorInfo)
+
         val row4 = listOf(
             KeyItem(
                 action = KeyAction.SwitchMode(KeyboardMode.NUMERIC_SYMBOLS),
@@ -117,16 +145,16 @@ object KeyboardLayoutProvider {
                 widthWeight = 1.0f,
                 isSpecial = true
             ),
-            KeyItem.symbolKey(",", weight = 1.0f),
+            KeyItem.symbolKey(",", longPressHint = ";", weight = 1.0f),
             KeyItem(
                 action = KeyAction.Space,
                 primaryLabel = "space",
                 widthWeight = 4.2f
             ),
-            KeyItem.symbolKey(".", weight = 1.0f),
+            KeyItem.symbolKey(".", longPressHint = "?", weight = 1.0f),
             KeyItem(
                 action = KeyAction.Enter,
-                iconResId = R.drawable.ic_enter,
+                iconResId = enterIcon,
                 widthWeight = 1.5f,
                 isSpecial = true,
                 isAction = true
@@ -136,7 +164,7 @@ object KeyboardLayoutProvider {
         return listOf(row1, row2, row3, row4)
     }
 
-    fun getNumericSymbolsRows(): List<List<KeyItem>> {
+    fun getNumericSymbolsRows(editorInfo: EditorInfo? = null): List<List<KeyItem>> {
         val row1 = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0").map { KeyItem.symbolKey(it) }
 
         val row2 = listOf("@", "#", "$", "%", "&", "-", "+", "(", ")", "/").map { KeyItem.symbolKey(it) }
@@ -161,6 +189,8 @@ object KeyboardLayoutProvider {
             )
         }
 
+        val enterIcon = getEnterKeyIcon(editorInfo)
+
         val row4 = listOf(
             KeyItem(
                 action = KeyAction.SwitchMode(KeyboardMode.QWERTY),
@@ -183,7 +213,7 @@ object KeyboardLayoutProvider {
             KeyItem.symbolKey(".", weight = 1.0f),
             KeyItem(
                 action = KeyAction.Enter,
-                iconResId = R.drawable.ic_enter,
+                iconResId = enterIcon,
                 widthWeight = 1.5f,
                 isSpecial = true,
                 isAction = true
@@ -193,7 +223,7 @@ object KeyboardLayoutProvider {
         return listOf(row1, row2, row3, row4)
     }
 
-    fun getMoreSymbolsRows(): List<List<KeyItem>> {
+    fun getMoreSymbolsRows(editorInfo: EditorInfo? = null): List<List<KeyItem>> {
         val row1 = listOf("~", "`", "|", "•", "√", "π", "÷", "×", "¶", "∆").map { KeyItem.symbolKey(it) }
 
         val row2 = listOf("£", "€", "¥", "¢", "^", "°", "=", "{", "}", "\\").map { KeyItem.symbolKey(it) }
@@ -218,6 +248,8 @@ object KeyboardLayoutProvider {
             )
         }
 
+        val enterIcon = getEnterKeyIcon(editorInfo)
+
         val row4 = listOf(
             KeyItem(
                 action = KeyAction.SwitchMode(KeyboardMode.QWERTY),
@@ -240,7 +272,7 @@ object KeyboardLayoutProvider {
             KeyItem.symbolKey(">", weight = 1.0f),
             KeyItem(
                 action = KeyAction.Enter,
-                iconResId = R.drawable.ic_enter,
+                iconResId = enterIcon,
                 widthWeight = 1.5f,
                 isSpecial = true,
                 isAction = true

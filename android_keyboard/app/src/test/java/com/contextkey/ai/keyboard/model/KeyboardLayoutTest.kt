@@ -1,5 +1,7 @@
 package com.contextkey.ai.keyboard.model
 
+import android.view.inputmethod.EditorInfo
+import com.contextkey.ai.keyboard.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -8,42 +10,51 @@ import org.junit.Test
 class KeyboardLayoutTest {
 
     @Test
-    fun `shift state transitions cycle correctly`() {
-        var state = ShiftState.OFF
-        assertFalse(state.isShiftedOrCaps())
-
-        state = state.nextOnTap()
-        assertEquals(ShiftState.SHIFTED, state)
-        assertTrue(state.isShiftedOrCaps())
-
-        state = state.nextOnTap()
-        assertEquals(ShiftState.CAPS_LOCKED, state)
-        assertTrue(state.isShiftedOrCaps())
-
-        state = state.nextOnTap()
-        assertEquals(ShiftState.OFF, state)
-        assertFalse(state.isShiftedOrCaps())
+    fun `shift state isShiftedOrCaps matches shifted and caps locked states`() {
+        assertFalse(ShiftState.OFF.isShiftedOrCaps())
+        assertTrue(ShiftState.SHIFTED.isShiftedOrCaps())
+        assertTrue(ShiftState.CAPS_LOCKED.isShiftedOrCaps())
     }
 
     @Test
-    fun `qwerty layout provides 4 rows with all alphabet letters`() {
+    fun `qwerty layout provides 4 rows with all alphabet letters and number hints`() {
         val rows = KeyboardLayoutProvider.getQwertyRows()
         assertEquals(4, rows.size)
 
         val characters = mutableListOf<String>()
+        val secondaryHints = mutableListOf<String>()
         for (row in rows) {
             for (key in row) {
                 if (key.action is KeyAction.Character) {
                     characters.add(key.action.normal)
+                    key.action.longPressText?.let { secondaryHints.add(it) }
                 }
             }
         }
 
-        // Must contain standard 26 English letters plus basic symbols
+        // Must contain standard 26 English letters
         val alphabet = ('a'..'z').map { it.toString() }
         for (letter in alphabet) {
             assertTrue("Expected letter $letter in QWERTY layout", characters.contains(letter))
         }
+
+        // Top row must have digits 1 to 0 as secondary long-press hints
+        val digits = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+        for (digit in digits) {
+            assertTrue("Expected secondary hint $digit in top row", secondaryHints.contains(digit))
+        }
+    }
+
+    @Test
+    fun `enter key icon maps dynamically to editor action`() {
+        val searchEditorInfo = EditorInfo().apply { imeOptions = EditorInfo.IME_ACTION_SEARCH }
+        assertEquals(R.drawable.ic_action_search, KeyboardLayoutProvider.getEnterKeyIcon(searchEditorInfo))
+
+        val sendEditorInfo = EditorInfo().apply { imeOptions = EditorInfo.IME_ACTION_SEND }
+        assertEquals(R.drawable.ic_action_send, KeyboardLayoutProvider.getEnterKeyIcon(sendEditorInfo))
+
+        val doneEditorInfo = EditorInfo().apply { imeOptions = EditorInfo.IME_ACTION_DONE }
+        assertEquals(R.drawable.ic_action_done, KeyboardLayoutProvider.getEnterKeyIcon(doneEditorInfo))
     }
 
     @Test

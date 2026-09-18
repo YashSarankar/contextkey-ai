@@ -1,14 +1,19 @@
 package com.contextkey.ai.keyboard.ime
 
+import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.text.InputType
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.view.Window
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputBinding
 import android.view.inputmethod.InputMethodManager
 import com.contextkey.ai.keyboard.input.ContextCollector
 import com.contextkey.ai.keyboard.input.InputController
 import com.contextkey.ai.keyboard.input.SafeContextCollector
+import com.contextkey.ai.keyboard.model.ShiftState
 import com.contextkey.ai.keyboard.security.DefaultInputSecurityPolicy
 import com.contextkey.ai.keyboard.security.InputSecurityPolicy
 import com.contextkey.ai.keyboard.ui.KeyboardController
@@ -17,7 +22,8 @@ import com.contextkey.ai.keyboard.ui.KeyboardView
 /**
  * Native Android Input Method Service for ContextKey Keyboard.
  *
- * Implements the Android IME lifecycle cleanly and safely.
+ * Implements the Android IME lifecycle cleanly, safely, and ensures
+ * proper Window and Insets computation with professional typing features.
  */
 class ContextKeyInputMethodService : InputMethodService() {
 
@@ -51,6 +57,37 @@ class ContextKeyInputMethodService : InputMethodService() {
         )
     }
 
+    override fun onConfigureWindow(win: Window, isFullscreen: Boolean, isCandidatesOnly: Boolean) {
+        super.onConfigureWindow(win, isFullscreen, isCandidatesOnly)
+        win.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        win.setGravity(Gravity.BOTTOM)
+    }
+
+    /**
+     * Prevent full-screen extract mode in landscape or large screens,
+     * allowing the host application to resize/pan and maintain text field visibility.
+     */
+    override fun onEvaluateFullscreenMode(): Boolean {
+        return false
+    }
+
+    override fun onEvaluateInputViewShown(): Boolean {
+        return true
+    }
+
+    override fun onComputeInsets(outInsets: Insets) {
+        super.onComputeInsets(outInsets)
+        val kbView = keyboardView
+        if (kbView != null && isInputViewShown) {
+            val location = IntArray(2)
+            kbView.getLocationInWindow(location)
+            outInsets.contentTopInsets = location[1]
+            outInsets.visibleTopInsets = location[1]
+            outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_VISIBLE
+            outInsets.touchableRegion.setEmpty()
+        }
+    }
+
     override fun onCreateInputView(): View {
         val view = KeyboardView(this)
         view.attachController(keyboardController)
@@ -62,15 +99,23 @@ class ContextKeyInputMethodService : InputMethodService() {
         super.onStartInput(attribute, restarting)
         this.currentEditorInfo = attribute
 
-        // Reset mode and shift state on fresh input
         if (!restarting) {
+            val initialShift = computeAutoCapitalization(attribute)
             keyboardController.resetState()
+            if (initialShift != ShiftState.OFF) {
+                keyboardController.setInitialShiftState(initialShift)
+            }
         }
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         this.currentEditorInfo = info
+        keyboardView?.setEditorInfo(info)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
         keyboardView?.render()
     }
 
@@ -103,6 +148,35 @@ class ContextKeyInputMethodService : InputMethodService() {
 
     override fun onBindInput() {
         super.onBindInput()
+    }
+
+    private fun computeAutoCapitalization(editorInfo: EditorInfo?): ShiftState {
+        if (editorInfo == null) return ShiftState.OFF
+
+        val inputType = editorInfo.inputType
+        val inputClass = inputType and InputType.TYPE_MASK_CLASS
+
+        if (inputClass != InputType.TYPE_CLASS_TEXT) {
+            return ShiftState.OFF
+        }
+
+        // Do not auto-capitalize password, email, or URL fields
+        val variation = inputType and InputType.TYPE_MASK_VARIATION
+        when (variation) {
+            InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+            InputType.TYPE_TEXT_VARIATION_URI -> return ShiftState.OFF
+        }
+
+        val flags = inputType and InputType.TYPE_MASK_FLAGS
+        return when {
+            (flags and InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS) != 0 -> ShiftState.CAPS_LOCKED
+            (flags and InputType.TYPE_TEXT_FLAG_CAP_WORDS) != 0 -> ShiftState.SHIFTED
+            (flags and InputType.TYPE_TEXT_FLAG_CAP_SENTENCES) != 0 -> ShiftState.SHIFTED
+            else -> ShiftState.SHIFTED // Standard text field default
+        }
     }
 
     /**
