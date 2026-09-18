@@ -1,0 +1,58 @@
+[
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_ic_keyboard.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/ic_keyboard.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_bg_ai_pill.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/bg_ai_pill.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_bg_key_action.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/bg_key_action.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_ic_shift_active.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/ic_shift_active.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_ic_shift.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/ic_shift.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_ic_globe.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/ic_globe.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_ic_ai_sparkle.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/ic_ai_sparkle.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/xml_method.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/xml/method.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_bg_key_special.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/bg_key_special.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_ic_shift_caps.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/ic_shift_caps.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_bg_key_normal.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/bg_key_normal.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/layout_activity_main.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_ic_backspace.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/ic_backspace.xml"
+    },
+    {
+        "merged": "com.contextkey.ai.keyboard.app-debug-32:/drawable_ic_enter.xml.flat",
+        "source": "com.contextkey.ai.keyboard.app-main-34:/drawable/ic_enter.xml"
+    }
+]

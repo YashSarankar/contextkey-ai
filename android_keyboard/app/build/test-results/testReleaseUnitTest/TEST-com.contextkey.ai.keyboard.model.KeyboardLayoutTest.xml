@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.contextkey.ai.keyboard.model.KeyboardLayoutTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-18T12:35:18" hostname="krishikrantis-Mac-mini.local" time="0.007">
+  <properties/>
+  <testcase name="qwerty layout provides 4 rows with all alphabet letters" classname="com.contextkey.ai.keyboard.model.KeyboardLayoutTest" time="0.006"/>
+  <testcase name="more symbols layout contains extended symbols" classname="com.contextkey.ai.keyboard.model.KeyboardLayoutTest" time="0.0"/>
+  <testcase name="numeric symbols layout contains digits 0 to 9" classname="com.contextkey.ai.keyboard.model.KeyboardLayoutTest" time="0.001"/>
+  <testcase name="shift state transitions cycle correctly" classname="com.contextkey.ai.keyboard.model.KeyboardLayoutTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.contextkey.ai.keyboard.input.InputControllerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-09-18T12:35:18" hostname="krishikrantis-Mac-mini.local" time="0.005">
+  <properties/>
+  <testcase name="insertSpace commits whitespace character" classname="com.contextkey.ai.keyboard.input.InputControllerTest" time="0.005"/>
+  <testcase name="deleteBackward deletes selection when active selection exists" classname="com.contextkey.ai.keyboard.input.InputControllerTest" time="0.0"/>
+  <testcase name="commitText appends string to input connection" classname="com.contextkey.ai.keyboard.input.InputControllerTest" time="0.0"/>
+  <testcase name="deleteBackward deletes 1 character before cursor when no selection" classname="com.contextkey.ai.keyboard.input.InputControllerTest" time="0.0"/>
+  <testcase name="handleEnter triggers performEditorAction when action is SEARCH" classname="com.contextkey.ai.keyboard.input.InputControllerTest" time="0.0"/>
+  <testcase name="handleEnter commits newline when multiline text flag is active" classname="com.contextkey.ai.keyboard.input.InputControllerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

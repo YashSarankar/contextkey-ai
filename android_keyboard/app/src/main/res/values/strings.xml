@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ContextKey Keyboard</string>
+    <string name="ime_name">ContextKey Keyboard</string>
+    <string name="subtype_en_us">English (US)</string>
+    
+    <!-- Setup Activity Strings -->
+    <string name="setup_title">ContextKey Keyboard Setup</string>
+    <string name="setup_subtitle">Configure ContextKey as your native Android keyboard</string>
+    <string name="setup_step1_title">1. Enable Keyboard</string>
+    <string name="setup_step1_desc">Enable ContextKey in Android system input settings.</string>
+    <string name="setup_step1_button">Enable in Settings</string>
+    <string name="setup_step2_title">2. Select Keyboard</string>
+    <string name="setup_step2_desc">Choose ContextKey as your active input method.</string>
+    <string name="setup_step2_button">Select Input Method</string>
+    <string name="setup_step3_title">3. Test Keyboard</string>
+    <string name="setup_step3_desc">Tap the text field below to verify typing, symbols, and actions.</string>
+    <string name="setup_test_hint">Type something here to test ContextKey...</string>
+    <string name="setup_security_badge">Privacy First: Zero text collection, zero network transmission in Phase 1.</string>
+    <string name="ai_placeholder_label">AI</string>
+    <string name="ai_pill_tooltip">ContextKey AI (Phase 1 Placeholder)</string>
+</resources>

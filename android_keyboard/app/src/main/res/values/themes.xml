@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.ContextKeyKeyboard" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand_primary</item>
+        <item name="colorPrimaryVariant">@color/brand_primary_dark</item>
+        <item name="colorSecondary">@color/brand_accent</item>
+        <item name="android:statusBarColor">@color/setup_bg</item>
+        <item name="android:navigationBarColor">@color/setup_bg</item>
+    </style>
+</resources>

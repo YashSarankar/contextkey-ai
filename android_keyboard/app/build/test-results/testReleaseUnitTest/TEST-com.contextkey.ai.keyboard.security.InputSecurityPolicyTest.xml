@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.contextkey.ai.keyboard.security.InputSecurityPolicyTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-09-18T12:35:18" hostname="krishikrantis-Mac-mini.local" time="0.001">
+  <properties/>
+  <testcase name="number password variation is detected as sensitive" classname="com.contextkey.ai.keyboard.security.InputSecurityPolicyTest" time="0.0"/>
+  <testcase name="null editorInfo is not sensitive and forbids AI" classname="com.contextkey.ai.keyboard.security.InputSecurityPolicyTest" time="0.0"/>
+  <testcase name="text password variation is detected as sensitive" classname="com.contextkey.ai.keyboard.security.InputSecurityPolicyTest" time="0.0"/>
+  <testcase name="no personalized learning flag is detected as sensitive" classname="com.contextkey.ai.keyboard.security.InputSecurityPolicyTest" time="0.0"/>
+  <testcase name="standard text input is not sensitive but AI disabled in Phase 1" classname="com.contextkey.ai.keyboard.security.InputSecurityPolicyTest" time="0.0"/>
+  <testcase name="email address input is not sensitive" classname="com.contextkey.ai.keyboard.security.InputSecurityPolicyTest" time="0.0"/>
+  <testcase name="visible password variation is detected as sensitive" classname="com.contextkey.ai.keyboard.security.InputSecurityPolicyTest" time="0.0"/>
+  <testcase name="web password variation is detected as sensitive" classname="com.contextkey.ai.keyboard.security.InputSecurityPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
