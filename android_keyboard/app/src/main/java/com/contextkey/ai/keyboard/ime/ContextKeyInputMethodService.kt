@@ -91,6 +91,9 @@ class ContextKeyInputMethodService : InputMethodService() {
     override fun onCreateInputView(): View {
         val view = KeyboardView(this)
         view.attachController(keyboardController)
+        view.onCloseKeyboardRequested = {
+            requestHideSelf(0)
+        }
         this.keyboardView = view
         return view
     }

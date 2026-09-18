@@ -7,6 +7,8 @@ import android.view.Gravity
 import android.view.inputmethod.EditorInfo
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.contextkey.ai.keyboard.R
 import com.contextkey.ai.keyboard.model.KeyboardLayoutProvider
 import com.contextkey.ai.keyboard.model.KeyboardMode
@@ -14,7 +16,7 @@ import com.contextkey.ai.keyboard.model.KeyboardMode
 /**
  * Root input view for the ContextKey keyboard.
  * Renders the header and dynamic key rows according to the active mode, shift state,
- * and current EditorInfo.
+ * and current EditorInfo, with proper navigation bar insets handling.
  */
 class KeyboardView @JvmOverloads constructor(
     context: Context,
@@ -27,10 +29,16 @@ class KeyboardView @JvmOverloads constructor(
 
     private var controller: KeyboardController? = null
     private var currentEditorInfo: EditorInfo? = null
+    var onCloseKeyboardRequested: (() -> Unit)? = null
 
     init {
         orientation = VERTICAL
         setBackgroundColor(ContextCompat.getColor(context, R.color.kb_background))
+
+        // Connect Header Close Click
+        headerView.onCloseClickListener = {
+            onCloseKeyboardRequested?.invoke()
+        }
 
         // Add Header
         val headerParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
@@ -38,9 +46,17 @@ class KeyboardView @JvmOverloads constructor(
 
         // Rows container
         rowsContainer.orientation = VERTICAL
-        rowsContainer.setPadding(dpToPx(4), dpToPx(3), dpToPx(4), dpToPx(6))
+        rowsContainer.setPadding(dpToPx(4), dpToPx(3), dpToPx(4), dpToPx(4))
         val containerParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         addView(rowsContainer, containerParams)
+
+        // Handle navigation bar insets so bottom keys are never overlapped by system gesture bar / close buttons
+        ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
+            val navInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val bottomPadding = if (navInsets.bottom > 0) navInsets.bottom else dpToPx(6)
+            view.setPadding(navInsets.left, 0, navInsets.right, bottomPadding)
+            insets
+        }
     }
 
     fun attachController(keyboardController: KeyboardController) {
