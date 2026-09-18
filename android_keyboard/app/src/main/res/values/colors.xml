@@ -5,30 +5,33 @@
     <color name="brand_primary_dark">#1D4ED8</color>
     <color name="brand_accent">#38BDF8</color>
     
-    <!-- Keyboard Dark Theme Defaults (Clean, modern aesthetic) -->
-    <color name="kb_background">#18191C</color>
-    <color name="kb_header_bg">#202226</color>
-    <color name="kb_key_normal_bg">#2C2D32</color>
-    <color name="kb_key_normal_pressed">#40424A</color>
-    <color name="kb_key_special_bg">#222327</color>
-    <color name="kb_key_special_pressed">#35373E</color>
-    <color name="kb_key_action_bg">#2563EB</color>
-    <color name="kb_key_action_pressed">#1D4ED8</color>
+    <!-- Gboard-Style Material 3 Dark Palette -->
+    <color name="kb_background">#1B1B1F</color>
+    <color name="kb_header_bg">#1B1B1F</color>
+    <color name="kb_key_normal_bg">#2D2D32</color>
+    <color name="kb_key_normal_pressed">#42424A</color>
+    <color name="kb_key_special_bg">#232328</color>
+    <color name="kb_key_special_pressed">#37373E</color>
+    <color name="kb_key_action_bg">#A8C7FA</color>
+    <color name="kb_key_action_pressed">#80AAEE</color>
+    <color name="kb_key_action_icon">#062E6F</color>
+    <color name="kb_popup_bg">#343339</color>
+    <color name="kb_popup_shadow">#000000</color>
     
     <!-- Text and Icon Colors -->
-    <color name="kb_text_primary">#FFFFFF</color>
-    <color name="kb_text_secondary">#9CA3AF</color>
-    <color name="kb_icon_tint">#E5E7EB</color>
-    <color name="kb_icon_active_tint">#38BDF8</color>
+    <color name="kb_text_primary">#F2EFF4</color>
+    <color name="kb_text_secondary">#9B98A0</color>
+    <color name="kb_icon_tint">#E6E1E5</color>
+    <color name="kb_icon_active_tint">#A8C7FA</color>
     
     <!-- Placeholder AI Pill -->
-    <color name="kb_ai_pill_bg">#1E293B</color>
-    <color name="kb_ai_pill_border">#3B82F6</color>
-    <color name="kb_ai_pill_text">#60A5FA</color>
-    <color name="kb_ai_pill_pressed">#334155</color>
+    <color name="kb_ai_pill_bg">#222634</color>
+    <color name="kb_ai_pill_border">#4367C7</color>
+    <color name="kb_ai_pill_text">#A8C7FA</color>
+    <color name="kb_ai_pill_pressed">#31374B</color>
     
     <!-- Key Shadow / Border -->
-    <color name="kb_key_shadow">#000000</color>
+    <color name="kb_key_shadow">#111114</color>
     
     <!-- Setup App Colors -->
     <color name="setup_bg">#0F172A</color>

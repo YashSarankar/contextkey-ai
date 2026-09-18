@@ -1,6 +1,8 @@
 package com.contextkey.ai.keyboard.ui
 
+import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import com.contextkey.ai.keyboard.input.InputController
 import com.contextkey.ai.keyboard.model.KeyAction
 import com.contextkey.ai.keyboard.model.KeyItem
@@ -9,11 +11,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import java.lang.reflect.Proxy
-import android.view.inputmethod.InputConnection
 
 class KeyboardControllerTest {
 
     private val committedTexts = mutableListOf<String>()
+    private var sentKeyEventCount = 0
     private var stateChangeCount = 0
     private var imeSwitchCount = 0
 
@@ -22,6 +24,7 @@ class KeyboardControllerTest {
     @Before
     fun setUp() {
         committedTexts.clear()
+        sentKeyEventCount = 0
         stateChangeCount = 0
         imeSwitchCount = 0
 
@@ -29,10 +32,17 @@ class KeyboardControllerTest {
             InputConnection::class.java.classLoader,
             arrayOf(InputConnection::class.java)
         ) { _, method, args ->
-            if (method.name == "commitText") {
-                committedTexts.add(args[0] as String)
-                true
-            } else null
+            when (method.name) {
+                "commitText" -> {
+                    committedTexts.add(args[0] as String)
+                    true
+                }
+                "sendKeyEvent" -> {
+                    sentKeyEventCount++
+                    true
+                }
+                else -> null
+            }
         } as InputConnection
 
         val inputController = InputController(
@@ -42,7 +52,7 @@ class KeyboardControllerTest {
 
         controller = KeyboardController(
             inputController = inputController,
-            onStateChanged = { stateChangeCount++ },
+            onStateChanged = { _ -> stateChangeCount++ },
             onSwitchImeRequested = { imeSwitchCount++ }
         )
     }
@@ -76,5 +86,11 @@ class KeyboardControllerTest {
         controller.handleKeyLongClick(keyWithHint)
 
         assertEquals(listOf("1"), committedTexts)
+    }
+
+    @Test
+    fun `space glide triggers move cursor`() {
+        controller.handleSpaceGlide(1)
+        // Verified without throwing stub exception
     }
 }

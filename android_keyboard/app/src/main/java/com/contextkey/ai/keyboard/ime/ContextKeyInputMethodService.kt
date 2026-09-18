@@ -1,7 +1,9 @@
 package com.contextkey.ai.keyboard.ime
 
+import android.content.Context
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
+import android.media.AudioManager
 import android.os.Build
 import android.text.InputType
 import android.view.Gravity
@@ -22,8 +24,8 @@ import com.contextkey.ai.keyboard.ui.KeyboardView
 /**
  * Native Android Input Method Service for ContextKey Keyboard.
  *
- * Implements the Android IME lifecycle cleanly, safely, and ensures
- * proper Window and Insets computation with professional typing features.
+ * Implements the Android IME lifecycle cleanly, safely, and delivers
+ * Gboard-grade responsiveness, insets, and typing features.
  */
 class ContextKeyInputMethodService : InputMethodService() {
 
@@ -41,15 +43,22 @@ class ContextKeyInputMethodService : InputMethodService() {
         securityPolicy = DefaultInputSecurityPolicy()
         contextCollector = SafeContextCollector(securityPolicy)
 
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+
         inputController = InputController(
             inputConnectionProvider = { currentInputConnection },
-            editorInfoProvider = { currentEditorInfo }
+            editorInfoProvider = { currentEditorInfo },
+            audioManagerProvider = { audioManager }
         )
 
         keyboardController = KeyboardController(
             inputController = inputController,
-            onStateChanged = {
-                keyboardView?.render()
+            onStateChanged = { isFullModeChange ->
+                if (isFullModeChange) {
+                    keyboardView?.render()
+                } else {
+                    keyboardView?.updateShiftStateOnly()
+                }
             },
             onSwitchImeRequested = {
                 switchInputMethod()
@@ -178,7 +187,7 @@ class ContextKeyInputMethodService : InputMethodService() {
             (flags and InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS) != 0 -> ShiftState.CAPS_LOCKED
             (flags and InputType.TYPE_TEXT_FLAG_CAP_WORDS) != 0 -> ShiftState.SHIFTED
             (flags and InputType.TYPE_TEXT_FLAG_CAP_SENTENCES) != 0 -> ShiftState.SHIFTED
-            else -> ShiftState.SHIFTED // Standard text field default
+            else -> ShiftState.SHIFTED
         }
     }
 

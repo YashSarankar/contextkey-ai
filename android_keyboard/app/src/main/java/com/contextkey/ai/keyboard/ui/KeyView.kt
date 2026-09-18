@@ -19,8 +19,9 @@ import com.contextkey.ai.keyboard.model.KeyItem
 import com.contextkey.ai.keyboard.model.ShiftState
 
 /**
- * Visual key widget rendering primary label, secondary hints, or icons,
- * with tactile elevation, haptics, and auto-repeat on backspace.
+ * High-performance, zero-latency key widget rendering primary labels,
+ * secondary hints, and action icons. Supports instant action on touch down,
+ * long-press repeating backspace, and spacebar cursor navigation.
  */
 class KeyView @JvmOverloads constructor(
     context: Context,
@@ -37,10 +38,14 @@ class KeyView @JvmOverloads constructor(
 
     private var onKeyClickListener: ((KeyItem) -> Unit)? = null
     private var onKeyLongPressListener: ((KeyItem) -> Unit)? = null
+    private var onSwipeMoveListener: ((Int) -> Unit)? = null
+    private var onTouchStateChangedListener: ((KeyView, Boolean, String?) -> Unit)? = null
 
     private val repeatHandler = Handler(Looper.getMainLooper())
     private var isRepeating = false
     private var longPressTriggered = false
+    private var downX = 0f
+    private var lastGlideX = 0f
 
     private val repeatRunnable = object : Runnable {
         override fun run() {
@@ -61,6 +66,7 @@ class KeyView @JvmOverloads constructor(
                 longPressTriggered = true
                 performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 onKeyLongPressListener?.invoke(item)
+                onTouchStateChangedListener?.invoke(this@KeyView, false, null)
             }
         }
     }
@@ -69,40 +75,42 @@ class KeyView @JvmOverloads constructor(
         isClickable = true
         isFocusable = false
 
-        // Configure main label
+        // Primary text
         textView.gravity = Gravity.CENTER
         textView.typeface = Typeface.create("sans-serif", Typeface.NORMAL)
         textView.setTextColor(ContextCompat.getColor(context, R.color.kb_text_primary))
         textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
-        val textParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-        addView(textView, textParams)
+        addView(textView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
 
-        // Configure secondary hint label (top-right corner)
+        // Secondary hint
         secondaryTextView.gravity = Gravity.TOP or Gravity.END
         secondaryTextView.setTextColor(ContextCompat.getColor(context, R.color.kb_text_secondary))
         secondaryTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
-        val secondaryParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+        val secParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
             gravity = Gravity.TOP or Gravity.END
             setMargins(0, dpToPx(3), dpToPx(5), 0)
         }
-        addView(secondaryTextView, secondaryParams)
+        addView(secondaryTextView, secParams)
 
-        // Configure icon image view
+        // Icon
         imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
         imageView.setColorFilter(ContextCompat.getColor(context, R.color.kb_icon_tint))
-        val imageParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-        addView(imageView, imageParams)
+        addView(imageView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
     fun bind(
         item: KeyItem,
         shiftState: ShiftState,
         clickListener: (KeyItem) -> Unit,
-        longClickListener: ((KeyItem) -> Unit)? = null
+        longClickListener: ((KeyItem) -> Unit)? = null,
+        swipeListener: ((Int) -> Unit)? = null,
+        touchStateListener: ((KeyView, Boolean, String?) -> Unit)? = null
     ) {
         this.keyItem = item
         this.onKeyClickListener = clickListener
         this.onKeyLongPressListener = longClickListener
+        this.onSwipeMoveListener = swipeListener
+        this.onTouchStateChangedListener = touchStateListener
 
         // Background styling
         val bgRes = when {
@@ -112,7 +120,12 @@ class KeyView @JvmOverloads constructor(
         }
         background = ContextCompat.getDrawable(context, bgRes)
 
-        // Render Icons or Labels
+        updateDisplay(shiftState)
+    }
+
+    fun updateDisplay(shiftState: ShiftState) {
+        val item = keyItem ?: return
+
         if (item.action is KeyAction.Shift) {
             textView.visibility = GONE
             secondaryTextView.visibility = GONE
@@ -124,17 +137,16 @@ class KeyView @JvmOverloads constructor(
                 ShiftState.CAPS_LOCKED -> R.drawable.ic_shift_caps
             }
             imageView.setImageResource(shiftIcon)
-            if (shiftState != ShiftState.OFF) {
-                imageView.setColorFilter(ContextCompat.getColor(context, R.color.kb_icon_active_tint))
-            } else {
-                imageView.setColorFilter(ContextCompat.getColor(context, R.color.kb_icon_tint))
-            }
+            val tint = if (shiftState != ShiftState.OFF) R.color.kb_icon_active_tint else R.color.kb_icon_tint
+            imageView.setColorFilter(ContextCompat.getColor(context, tint))
         } else if (item.iconResId != null) {
             textView.visibility = GONE
             secondaryTextView.visibility = GONE
             imageView.visibility = VISIBLE
             imageView.setImageResource(item.iconResId)
-            imageView.setColorFilter(ContextCompat.getColor(context, R.color.kb_icon_tint))
+
+            val tint = if (item.isAction) R.color.kb_key_action_icon else R.color.kb_icon_tint
+            imageView.setColorFilter(ContextCompat.getColor(context, tint))
         } else {
             imageView.visibility = GONE
             textView.visibility = VISIBLE
@@ -149,7 +161,7 @@ class KeyView @JvmOverloads constructor(
             textView.text = label
 
             if (item.action is KeyAction.Space) {
-                textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                 textView.setTextColor(ContextCompat.getColor(context, R.color.kb_text_secondary))
             } else if (item.isSpecial) {
                 textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
@@ -159,7 +171,6 @@ class KeyView @JvmOverloads constructor(
                 textView.setTextColor(ContextCompat.getColor(context, R.color.kb_text_primary))
             }
 
-            // Secondary label
             if (!item.secondaryLabel.isNullOrEmpty() && shiftState == ShiftState.OFF) {
                 secondaryTextView.visibility = VISIBLE
                 secondaryTextView.text = item.secondaryLabel
@@ -170,17 +181,47 @@ class KeyView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        val item = keyItem ?: return super.onTouchEvent(event)
+
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 isPressed = true
                 longPressTriggered = false
                 isRepeating = false
+                downX = event.rawX
+                lastGlideX = event.rawX
                 performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
 
-                if (keyItem?.action is KeyAction.Backspace) {
+                // Trigger key preview popup for letters
+                val previewText = when (val act = item.action) {
+                    is KeyAction.Character -> textView.text.toString()
+                    else -> null
+                }
+                onTouchStateChangedListener?.invoke(this, true, previewText)
+
+                // Instant input on touch down for zero-latency typing
+                if (item.action !is KeyAction.Space && item.action !is KeyAction.Backspace) {
+                    onKeyClickListener?.invoke(item)
+                }
+
+                if (item.action is KeyAction.Backspace) {
+                    onKeyClickListener?.invoke(item)
                     repeatHandler.postDelayed(repeatRunnable, REPEAT_INITIAL_DELAY_MS)
-                } else if ((keyItem?.action as? KeyAction.Character)?.longPressText != null) {
+                } else if ((item.action as? KeyAction.Character)?.longPressText != null) {
                     repeatHandler.postDelayed(longPressRunnable, LONG_PRESS_DELAY_MS)
+                }
+                return true
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (item.action is KeyAction.Space) {
+                    val delta = event.rawX - lastGlideX
+                    val step = dpToPx(16)
+                    if (kotlin.math.abs(delta) >= step) {
+                        val offset = if (delta > 0) 1 else -1
+                        onSwipeMoveListener?.invoke(offset)
+                        lastGlideX = event.rawX
+                    }
                 }
                 return true
             }
@@ -188,10 +229,15 @@ class KeyView @JvmOverloads constructor(
             MotionEvent.ACTION_UP -> {
                 repeatHandler.removeCallbacks(repeatRunnable)
                 repeatHandler.removeCallbacks(longPressRunnable)
+                onTouchStateChangedListener?.invoke(this, false, null)
+
                 if (isPressed) {
                     isPressed = false
-                    if (!isRepeating && !longPressTriggered) {
-                        keyItem?.let { onKeyClickListener?.invoke(it) }
+                    if (item.action is KeyAction.Space && !isRepeating && !longPressTriggered) {
+                        val totalSwipeDistance = kotlin.math.abs(event.rawX - downX)
+                        if (totalSwipeDistance < dpToPx(16)) {
+                            onKeyClickListener?.invoke(item)
+                        }
                     }
                 }
                 return true
@@ -200,6 +246,7 @@ class KeyView @JvmOverloads constructor(
             MotionEvent.ACTION_CANCEL -> {
                 repeatHandler.removeCallbacks(repeatRunnable)
                 repeatHandler.removeCallbacks(longPressRunnable)
+                onTouchStateChangedListener?.invoke(this, false, null)
                 isPressed = false
                 isRepeating = false
                 longPressTriggered = false
@@ -214,8 +261,8 @@ class KeyView @JvmOverloads constructor(
     }
 
     companion object {
-        private const val REPEAT_INITIAL_DELAY_MS = 380L
-        private const val REPEAT_INTERVAL_MS = 50L
-        private const val LONG_PRESS_DELAY_MS = 400L
+        private const val REPEAT_INITIAL_DELAY_MS = 360L
+        private const val REPEAT_INTERVAL_MS = 45L
+        private const val LONG_PRESS_DELAY_MS = 380L
     }
 }

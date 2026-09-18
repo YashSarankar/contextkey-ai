@@ -8,11 +8,11 @@ import com.contextkey.ai.keyboard.model.ShiftState
 
 /**
  * Manages keyboard modes, double-tap shift transitions (Caps Lock),
- * and dispatches actions to [InputController].
+ * double-tap space period shortcuts, cursor glides, and dispatches actions to [InputController].
  */
 class KeyboardController(
     private val inputController: InputController,
-    private val onStateChanged: () -> Unit,
+    private val onStateChanged: (Boolean) -> Unit, // isFullModeChange: Boolean
     private val onSwitchImeRequested: () -> Unit
 ) {
 
@@ -23,17 +23,19 @@ class KeyboardController(
         private set
 
     private var lastShiftTapTime: Long = 0L
+    private var lastSpaceTapTime: Long = 0L
 
     fun resetState() {
         keyboardMode = KeyboardMode.QWERTY
         shiftState = ShiftState.OFF
         lastShiftTapTime = 0L
-        onStateChanged()
+        lastSpaceTapTime = 0L
+        onStateChanged(true)
     }
 
     fun setInitialShiftState(initialState: ShiftState) {
         this.shiftState = initialState
-        onStateChanged()
+        onStateChanged(false)
     }
 
     fun handleKeyClick(keyItem: KeyItem) {
@@ -45,7 +47,7 @@ class KeyboardController(
                 // If single-tap shift was active, unshift after typing one character
                 if (shiftState == ShiftState.SHIFTED) {
                     shiftState = ShiftState.OFF
-                    onStateChanged()
+                    onStateChanged(false)
                 }
             }
 
@@ -60,7 +62,7 @@ class KeyboardController(
                     else -> ShiftState.SHIFTED
                 }
                 lastShiftTapTime = currentTime
-                onStateChanged()
+                onStateChanged(false)
             }
 
             is KeyAction.Backspace -> {
@@ -68,7 +70,18 @@ class KeyboardController(
             }
 
             is KeyAction.Space -> {
-                inputController.insertSpace()
+                val currentTime = System.currentTimeMillis()
+                val isDoubleSpace = (currentTime - lastSpaceTapTime) < DOUBLE_SPACE_TIMEOUT_MS
+
+                if (isDoubleSpace) {
+                    inputController.replaceWithPeriodSpace()
+                    shiftState = ShiftState.SHIFTED
+                    onStateChanged(false)
+                    lastSpaceTapTime = 0L
+                } else {
+                    inputController.insertSpace()
+                    lastSpaceTapTime = currentTime
+                }
             }
 
             is KeyAction.Enter -> {
@@ -77,7 +90,7 @@ class KeyboardController(
 
             is KeyAction.SwitchMode -> {
                 keyboardMode = action.targetMode
-                onStateChanged()
+                onStateChanged(true)
             }
 
             is KeyAction.SwitchIme -> {
@@ -96,7 +109,12 @@ class KeyboardController(
         inputController.commitText(longPressChar)
     }
 
+    fun handleSpaceGlide(offset: Int) {
+        inputController.moveCursor(offset)
+    }
+
     companion object {
         private const val DOUBLE_TAP_TIMEOUT_MS = 400L
+        private const val DOUBLE_SPACE_TIMEOUT_MS = 400L
     }
 }

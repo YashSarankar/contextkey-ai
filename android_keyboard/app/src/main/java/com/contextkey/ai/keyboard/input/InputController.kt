@@ -1,16 +1,19 @@
 package com.contextkey.ai.keyboard.input
 
+import android.media.AudioManager
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 
 /**
- * Coordinates all text mutations performed via [InputConnection].
+ * Coordinates all text mutations performed via [InputConnection],
+ * cursor navigation, and sound feedback.
  */
 class InputController(
     private val inputConnectionProvider: () -> InputConnection?,
-    private val editorInfoProvider: () -> EditorInfo?
+    private val editorInfoProvider: () -> EditorInfo?,
+    private val audioManagerProvider: (() -> AudioManager?)? = null
 ) {
 
     /**
@@ -19,6 +22,7 @@ class InputController(
     fun commitText(text: String) {
         val ic = inputConnectionProvider() ?: return
         ic.commitText(text, 1)
+        playSound(AudioManager.FX_KEYPRESS_STANDARD)
     }
 
     /**
@@ -30,14 +34,13 @@ class InputController(
         if (!selectedText.isNullOrEmpty()) {
             ic.commitText("", 1)
         } else {
-            // Standard backspace deletion
             val success = ic.deleteSurroundingText(1, 0)
             if (!success) {
-                // Fallback to key events for webviews / non-standard editors
                 ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
                 ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
             }
         }
+        playSound(AudioManager.FX_KEYPRESS_DELETE)
     }
 
     /**
@@ -45,6 +48,35 @@ class InputController(
      */
     fun insertSpace() {
         commitText(" ")
+        playSound(AudioManager.FX_KEYPRESS_SPACEBAR)
+    }
+
+    /**
+     * Replaces previous space with period and space for double-space shortcut.
+     */
+    fun replaceWithPeriodSpace() {
+        val ic = inputConnectionProvider() ?: return
+        val textBefore = ic.getTextBeforeCursor(2, 0)
+        if (textBefore != null && textBefore.endsWith(" ")) {
+            ic.deleteSurroundingText(1, 0)
+            ic.commitText(". ", 1)
+            playSound(AudioManager.FX_KEYPRESS_STANDARD)
+        } else {
+            insertSpace()
+        }
+    }
+
+    /**
+     * Moves cursor left or right (used for spacebar glide gestures).
+     */
+    fun moveCursor(offset: Int) {
+        val ic = inputConnectionProvider() ?: return
+        val keycode = if (offset < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
+        val count = kotlin.math.abs(offset)
+        for (i in 0 until count) {
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keycode))
+        }
     }
 
     /**
@@ -53,6 +85,8 @@ class InputController(
     fun handleEnter() {
         val ic = inputConnectionProvider() ?: return
         val editorInfo = editorInfoProvider()
+
+        playSound(AudioManager.FX_KEYPRESS_RETURN)
 
         if (editorInfo == null) {
             ic.commitText("\n", 1)
@@ -73,6 +107,14 @@ class InputController(
         } else {
             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+        }
+    }
+
+    private fun playSound(effectType: Int) {
+        try {
+            audioManagerProvider?.invoke()?.playSoundEffect(effectType)
+        } catch (_: Exception) {
+            // Ignore audio exceptions safely
         }
     }
 }
