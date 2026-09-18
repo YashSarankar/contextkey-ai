@@ -1,0 +1,17 @@
+# Gradle & Build
+.gradle/
+build/
+**/build/
+**/app/build/
+**/intermediates/
+**/tmp/
+
+# Android SDK & IDE
+local.properties
+**/local.properties
+*.iml
+.idea/
+.DS_Store
+captures/
+.externalNativeBuild
+.cxx

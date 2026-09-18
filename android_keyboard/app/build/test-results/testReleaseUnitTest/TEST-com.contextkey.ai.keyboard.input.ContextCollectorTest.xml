@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.contextkey.ai.keyboard.input.ContextCollectorTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-18T12:35:18" hostname="krishikrantis-Mac-mini.local" time="0.001">
-  <properties/>
-  <testcase name="isContextCollectionAllowed returns false in Phase 1" classname="com.contextkey.ai.keyboard.input.ContextCollectorTest" time="0.001"/>
-  <testcase name="getSurroundingContext returns null in Phase 1" classname="com.contextkey.ai.keyboard.input.ContextCollectorTest" time="0.0"/>
-  <testcase name="isContextCollectionAllowed returns false for password field" classname="com.contextkey.ai.keyboard.input.ContextCollectorTest" time="0.0"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>
